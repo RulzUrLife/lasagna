@@ -8,7 +8,9 @@ import (
 )
 
 type Configuration struct {
-	Debug    bool `json:"debug"`
+	Debug    bool   `json:"debug"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
 	Database struct {
 		Name     string `json:"name"`
 		User     string `json:"user"`

@@ -1,5 +1,7 @@
 {
-    "debug": false,
+    "debug": true,
+    "host": "localhost",
+    "port": 8888,
     "database": {
         "name": "potato",
         "user": "potato",
