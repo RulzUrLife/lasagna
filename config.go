@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"os"
 )
@@ -18,19 +19,26 @@ type Configuration struct {
 }
 
 var (
-	Config = getConfig()
+	Config  = getConfig()
+	Trace   = log.New(os.Stdout, "TRACE: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Info    = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Warning = log.New(os.Stderr, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Error   = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
 
 func getConfig() (config Configuration) {
 	configFile, err := os.Open(getConfigPath())
 	if err != nil {
-		log.Fatalf("Error when reading config file: %s", err)
+		Error.Fatalf("when reading config file: %s", err)
 	}
 	defer configFile.Close()
 
 	jsonParser := json.NewDecoder(configFile)
 	if err = jsonParser.Decode(&config); err != nil {
-		log.Fatalf("Error when unmarshalling the json %s", err)
+		Error.Fatalf("when unmarshalling the json: %s", err)
+	}
+	if !config.Debug {
+		Trace = log.New(ioutil.Discard, "", 0)
 	}
 	return
 }
