@@ -1,0 +1,10 @@
+{
+    "debug": false,
+    "database": {
+        "name": "potato",
+        "user": "potato",
+        "host": "localhost",
+        "port": 5432,
+        "password": "some_password"
+    }
+}
