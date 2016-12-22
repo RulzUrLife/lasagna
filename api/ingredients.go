@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"github.com/RulzUrLife/lasagna/db"
 	"net/http"
 	"strconv"
@@ -10,7 +9,7 @@ import (
 func list_ingredients(w http.ResponseWriter, r *http.Request) {
 	ingredients, err := db.ListIngredients()
 	if err == nil {
-		fmt.Fprintf(w, "List ingredients %q", ingredients)
+		ingredients.Dump(w)
 	} else {
 		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 	}
@@ -21,8 +20,10 @@ func get_ingredients(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/ingredients", http.StatusSeeOther)
 	} else if i, err := strconv.Atoi(url); err != nil {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
+	} else if ingredient, err := db.GetIngredient(i); err != nil {
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 	} else {
-		fmt.Fprintf(w, "Get ingredient %d", i)
+		ingredient.Dump(w)
 	}
 }
 
