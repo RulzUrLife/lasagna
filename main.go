@@ -2,25 +2,21 @@ package main
 
 import (
 	"fmt"
+	"github.com/RulzUrLife/lasagna/api"
+	"github.com/RulzUrLife/lasagna/config"
 	"net/http"
 	"time"
 )
 
-type Router struct{}
-
-func (_ *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World!")
-}
-
 func main() {
-	addr := fmt.Sprintf("%s:%d", Config.Host, Config.Port)
+	addr := fmt.Sprintf("%s:%d", config.Config.Host, config.Config.Port)
 	s := &http.Server{
 		Addr:           addr,
-		Handler:        &Router{},
+		Handler:        api.Mux,
 		MaxHeaderBytes: 1 << 20,
 		ReadTimeout:    5 * time.Second,
 		WriteTimeout:   5 * time.Second,
 	}
-	Info.Printf("* Running on http://%s/\n", addr)
-	Error.Fatal(s.ListenAndServe())
+	config.Info.Printf("Running on http://%s/\n", addr)
+	config.Error.Fatal(s.ListenAndServe())
 }
