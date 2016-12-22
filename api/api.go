@@ -10,13 +10,28 @@ var (
 	Mux = &ServeMux{http.NewServeMux()}
 )
 
+type ResponseWriter struct {
+	http.ResponseWriter
+	request *http.Request
+}
+
+func (rw *ResponseWriter) WriteResp(i interface{}) (int, error) {
+	accepts := rw.request.Header["Accept"]
+	for _, media := range accepts {
+		config.Trace.Printf("%s", media)
+	}
+	config.Trace.Printf("Adapt response to headers")
+	rw.Header().Set("Content-Type", "application/json")
+	return rw.ResponseWriter.Write([]byte{})
+}
+
 type ServeMux struct {
 	*http.ServeMux
 }
 
 func (mux *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	config.Info.Printf("%s %s", r.Method, r.URL.Path)
-	mux.ServeMux.ServeHTTP(w, r)
+	mux.ServeMux.ServeHTTP(&ResponseWriter{w, r}, r)
 }
 
 func index(w http.ResponseWriter, req *http.Request) {

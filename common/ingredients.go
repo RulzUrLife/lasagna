@@ -1,13 +1,6 @@
 package common
 
-import (
-	"encoding/json"
-	"io"
-)
-
-func Dump(i interface{}, w io.Writer) error {
-	return json.NewEncoder(w).Encode(i)
-}
+import ()
 
 type Ingredient struct {
 	Id   int    `json:"id"`
@@ -17,6 +10,3 @@ type Ingredient struct {
 type Ingredients struct {
 	Ingredients []*Ingredient `json:"ingredients"`
 }
-
-func (i *Ingredient) Dump(w io.Writer) error  { return Dump(i, w) }
-func (i *Ingredients) Dump(w io.Writer) error { return Dump(i, w) }

@@ -9,7 +9,7 @@ import (
 func list_ingredients(w http.ResponseWriter, r *http.Request) {
 	ingredients, err := db.ListIngredients()
 	if err == nil {
-		ingredients.Dump(w)
+		w.(*ResponseWriter).WriteResp(ingredients)
 	} else {
 		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 	}
@@ -23,7 +23,7 @@ func get_ingredients(w http.ResponseWriter, r *http.Request) {
 	} else if ingredient, err := db.GetIngredient(i); err != nil {
 		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 	} else {
-		ingredient.Dump(w)
+		w.(*ResponseWriter).WriteResp(ingredient)
 	}
 }
 
