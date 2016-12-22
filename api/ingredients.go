@@ -2,12 +2,18 @@ package api
 
 import (
 	"fmt"
+	"github.com/RulzUrLife/lasagna/db"
 	"net/http"
 	"strconv"
 )
 
 func list_ingredients(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "List ingredients")
+	ingredients, err := db.ListIngredients()
+	if err == nil {
+		fmt.Fprintf(w, "List ingredients %q", ingredients)
+	} else {
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 func get_ingredients(w http.ResponseWriter, r *http.Request) {

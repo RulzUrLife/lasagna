@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/RulzUrLife/lasagna/api"
 	"github.com/RulzUrLife/lasagna/config"
+	_ "github.com/RulzUrLife/lasagna/db"
 	"net/http"
 	"time"
 )
