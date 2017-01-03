@@ -24,11 +24,10 @@ func main() {
 	config.Info.Println("Register URL patterns")
 	mux := &api.ServeMux{http.NewServeMux()}
 	mux.HandleFunc("/", index)
-	mux.HandleEndpoint(&api.Endpoint{
-		"/ingredients", "listTplt", "getTplt",
+	mux.NewEndpoint("/ingredients",
 		func() (interface{}, error) { return db.ListIngredients() },
 		func(id int) (interface{}, error) { return db.GetIngredient(id) },
-	})
+	)
 
 	addr := fmt.Sprintf("%s:%d", config.Config.Host, config.Config.Port)
 	s := &http.Server{
