@@ -15,10 +15,15 @@ type ListMethod func() (interface{}, error)
 type GetMethod func(int) (interface{}, error)
 
 type Endpoint struct {
-	Name     string
-	List     ListMethod
-	Get      GetMethod
-	Template *template.Template
+	Name string
+	List struct {
+		Method   ListMethod
+		Template *template.Template
+	}
+	Get struct {
+		Method   GetMethod
+		Template *template.Template
+	}
 }
 
 func (e *Endpoint) get(w http.ResponseWriter, r *http.Request) {
@@ -26,18 +31,18 @@ func (e *Endpoint) get(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/ingredients", http.StatusSeeOther)
 	} else if i, err := strconv.Atoi(url); err != nil {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
-	} else if data, err := e.Get(i); err != nil {
+	} else if data, err := e.Get.Method(i); err != nil {
 		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 	} else {
-		e.dump(w, r, e.Template.Lookup("get.html"), data)
+		e.dump(w, r, e.Get.Template, data)
 	}
 }
 
 func (e *Endpoint) list(w http.ResponseWriter, r *http.Request) {
-	if data, err := e.List(); err != nil {
+	if data, err := e.List.Method(); err != nil {
 		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 	} else {
-		e.dump(w, r, e.Template.Lookup("list.html"), data)
+		e.dump(w, r, e.List.Template, data)
 	}
 }
 
@@ -49,7 +54,7 @@ func (e *Endpoint) dump(
 		media = strings.Split(media, ";")[0]
 		switch media {
 		case "text/html":
-			config.Trace.Printf("Rendering %s", path.Join(e.Name[1:], t.Name()))
+			config.Trace.Printf("Rendering html with %v", data)
 			w.Header().Set("Content-Type", "text/html")
 			t.Execute(w, data)
 			return
@@ -70,18 +75,21 @@ func (mux *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mux *ServeMux) NewEndpoint(name string, list ListMethod, get GetMethod) {
-	tplt := template.New(name)
-	base := path.Join("templates", name[1:])
+	endpoint := &Endpoint{Name: name}
 
-	tplt, err := tplt.ParseGlob(path.Join(base, "*"))
-	if err != nil {
-		config.Error.Fatalf("Parsing %s templates failed", name)
-	} else {
-		for _, t := range tplt.Templates() {
-			config.Info.Printf("Parsing %s", path.Join(base, t.Name()))
-		}
-	}
-	endpoint := &Endpoint{name, list, get, tplt}
+	base := path.Join("templates", "base.html")
+	dir := path.Join("templates", name)
+
+	endpoint.List.Method = list
+	endpoint.List.Template = template.Must(
+		template.ParseFiles(base, path.Join(dir, "list.html")),
+	)
+
+	endpoint.Get.Method = get
+	endpoint.Get.Template = template.Must(
+		template.ParseFiles(base, path.Join(dir, "get.html")),
+	)
+
 	mux.HandleFunc(name, endpoint.list)
 	mux.HandleFunc(fmt.Sprintf("%s/", name), endpoint.get)
 }
