@@ -1,11 +1,19 @@
 package db
 
 import (
-	"github.com/RulzUrLife/lasagna/common"
 	"github.com/RulzUrLife/lasagna/config"
 )
 
-func ListIngredients() (*common.Ingredients, error) {
+type Ingredient struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type Ingredients struct {
+	Ingredients []*Ingredient `json:"ingredients"`
+}
+
+func ListIngredients() (*Ingredients, error) {
 	q := "SELECT gordon.ingredient.id, gordon.ingredient.name FROM gordon.ingredient"
 	config.Trace.Println(q)
 
@@ -16,10 +24,10 @@ func ListIngredients() (*common.Ingredients, error) {
 	}
 	defer rows.Close()
 
-	ingredients := []*common.Ingredient{}
+	ingredients := []*Ingredient{}
 
 	for rows.Next() {
-		ingredient := &common.Ingredient{}
+		ingredient := &Ingredient{}
 		err = rows.Scan(&ingredient.Id, &ingredient.Name)
 		if err != nil {
 			config.Error.Println(err)
@@ -27,11 +35,11 @@ func ListIngredients() (*common.Ingredients, error) {
 		}
 		ingredients = append(ingredients, ingredient)
 	}
-	return &common.Ingredients{ingredients}, nil
+	return &Ingredients{ingredients}, nil
 }
 
-func GetIngredient(id int) (*common.Ingredient, error) {
-	ingredient := &common.Ingredient{}
+func GetIngredient(id int) (*Ingredient, error) {
+	ingredient := &Ingredient{}
 	q := "SELECT gordon.ingredient.id, gordon.ingredient.name "
 	q = q + "FROM gordon.ingredient WHERE gordon.ingredient.id = $1"
 
