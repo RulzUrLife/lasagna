@@ -28,6 +28,10 @@ func main() {
 		func() (interface{}, error) { return db.ListIngredients() },
 		func(id int) (interface{}, error) { return db.GetIngredient(id) },
 	)
+	mux.NewEndpoint("/recipes",
+		func() (interface{}, error) { return db.ListRecipes() },
+		func(id int) (interface{}, error) { return db.GetRecipe(id) },
+	)
 
 	addr := fmt.Sprintf("%s:%d", config.Config.Host, config.Config.Port)
 	s := &http.Server{

@@ -28,7 +28,7 @@ type Endpoint struct {
 
 func (e *Endpoint) get(w http.ResponseWriter, r *http.Request) {
 	if url := r.URL.Path[len(e.Name)+1:]; url == "" {
-		http.Redirect(w, r, "/ingredients", http.StatusSeeOther)
+		http.Redirect(w, r, e.Name, http.StatusSeeOther)
 	} else if i, err := strconv.Atoi(url); err != nil {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
 	} else if data, err := e.Get.Method(i); err != nil {

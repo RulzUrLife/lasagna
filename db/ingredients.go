@@ -13,11 +13,15 @@ type Ingredients struct {
 	Ingredients []*Ingredient `json:"ingredients"`
 }
 
-func ListIngredients() (*Ingredients, error) {
-	q := "SELECT gordon.ingredient.id, gordon.ingredient.name FROM gordon.ingredient"
-	config.Trace.Println(q)
+const ingredient_query = `
+SELECT gordon.ingredient.id, gordon.ingredient.name
+FROM gordon.ingredient
+`
 
-	rows, err := DB.Query(q)
+func ListIngredients() (*Ingredients, error) {
+	config.Trace.Println(ingredient_query)
+
+	rows, err := DB.Query(ingredient_query)
 	if err != nil {
 		config.Error.Println(err)
 		return nil, err
@@ -40,10 +44,8 @@ func ListIngredients() (*Ingredients, error) {
 
 func GetIngredient(id int) (*Ingredient, error) {
 	ingredient := &Ingredient{}
-	q := "SELECT gordon.ingredient.id, gordon.ingredient.name "
-	q = q + "FROM gordon.ingredient WHERE gordon.ingredient.id = $1"
-
-	config.Trace.Printf("%s, id=%d", q, id)
+	q := ingredient_query + "WHERE gordon.ingredient.id = $1"
+	config.Trace.Printf("[%d]%s", id, q)
 
 	err := DB.QueryRow(q, id).Scan(&ingredient.Id, &ingredient.Name)
 	if err != nil {
