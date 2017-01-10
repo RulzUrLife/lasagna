@@ -1,7 +1,8 @@
 package db
 
 import (
-	"github.com/RulzUrLife/lasagna/config"
+	"fmt"
+	"github.com/RulzUrLife/lasagna/common"
 )
 
 const query = `
@@ -31,14 +32,15 @@ type Recipes struct {
 	Recipes []*Recipe `json:"recipes"`
 }
 
-func dedup(q string, params ...interface{}) (res []*Recipe, err error) {
+func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
+	res := make([]*Recipe, 0)
 	recipes := map[int]*Recipe{}
-	config.Trace.Printf("%v%s", params, q)
+	common.Trace.Printf("%v%s", params, q)
 
 	rows, err := DB.Query(q, params...)
 	if err != nil {
-		config.Error.Println(err)
-		return
+		common.Error.Println(err)
+		return nil, common.New500Error(err.Error())
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -50,8 +52,8 @@ func dedup(q string, params ...interface{}) (res []*Recipe, err error) {
 			&ingredient.Quantity, &ingredient.Measurement,
 		)
 		if err != nil {
-			config.Error.Println(err)
-			return
+			common.Error.Println(err)
+			return nil, common.New500Error(err.Error())
 		}
 		if v, ok := recipes[recipe.Id]; ok {
 			recipe = v
@@ -63,10 +65,10 @@ func dedup(q string, params ...interface{}) (res []*Recipe, err error) {
 	for _, recipe := range recipes {
 		res = append(res, recipe)
 	}
-	return
+	return res, nil
 }
 
-func ListRecipes() (*Recipes, error) {
+func ListRecipes() (*Recipes, *common.HTTPError) {
 	if recipes, err := dedup(query); err != nil {
 		return nil, err
 	} else {
@@ -74,10 +76,12 @@ func ListRecipes() (*Recipes, error) {
 	}
 }
 
-func GetRecipe(id int) (*Recipe, error) {
+func GetRecipe(id int) (*Recipe, *common.HTTPError) {
 	recipes, err := dedup(query+"WHERE gordon.recipe.id = $1", id)
 	if err != nil {
 		return nil, err
+	} else if len(recipes) < 1 {
+		return nil, common.New404Error(fmt.Sprintf("Recipe %d not Found", id))
 	} else {
 		return recipes[0], nil
 	}

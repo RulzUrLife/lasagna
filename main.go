@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/RulzUrLife/lasagna/api"
-	"github.com/RulzUrLife/lasagna/config"
+	"github.com/RulzUrLife/lasagna/common"
 	"github.com/RulzUrLife/lasagna/db"
 	"net/http"
 	"time"
@@ -21,19 +21,19 @@ func index(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 
-	config.Info.Println("Register URL patterns")
+	common.Info.Println("Register URL patterns")
 	mux := &api.ServeMux{http.NewServeMux()}
 	mux.HandleFunc("/", index)
 	mux.NewEndpoint("/ingredients",
-		func() (interface{}, error) { return db.ListIngredients() },
-		func(id int) (interface{}, error) { return db.GetIngredient(id) },
+		func() (interface{}, *common.HTTPError) { return db.ListIngredients() },
+		func(id int) (interface{}, *common.HTTPError) { return db.GetIngredient(id) },
 	)
 	mux.NewEndpoint("/recipes",
-		func() (interface{}, error) { return db.ListRecipes() },
-		func(id int) (interface{}, error) { return db.GetRecipe(id) },
+		func() (interface{}, *common.HTTPError) { return db.ListRecipes() },
+		func(id int) (interface{}, *common.HTTPError) { return db.GetRecipe(id) },
 	)
 
-	addr := fmt.Sprintf("%s:%d", config.Config.Host, config.Config.Port)
+	addr := fmt.Sprintf("%s:%d", common.Config.Host, common.Config.Port)
 	s := &http.Server{
 		Addr:           addr,
 		Handler:        mux,
@@ -41,6 +41,6 @@ func main() {
 		ReadTimeout:    5 * time.Second,
 		WriteTimeout:   5 * time.Second,
 	}
-	config.Info.Printf("Running on http://%s/\n", addr)
-	config.Error.Fatal(s.ListenAndServe())
+	common.Info.Printf("Running on http://%s/\n", addr)
+	common.Error.Fatal(s.ListenAndServe())
 }

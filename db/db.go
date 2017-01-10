@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"github.com/RulzUrLife/lasagna/config"
+	"github.com/RulzUrLife/lasagna/common"
 	_ "github.com/lib/pq"
 	"regexp"
 )
@@ -13,7 +13,7 @@ var (
 )
 
 func connect() *sql.DB {
-	dbConfig := config.Config.Database
+	dbConfig := common.Config.Database
 	re := regexp.MustCompile("password=.* ")
 
 	connString := fmt.Sprintf(
@@ -21,14 +21,14 @@ func connect() *sql.DB {
 		dbConfig.Name, dbConfig.User, dbConfig.Password, dbConfig.Host, dbConfig.Port,
 	)
 
-	config.Info.Printf(
+	common.Info.Printf(
 		"Connecting to database with following options: %s",
 		re.ReplaceAllString(connString, "password=******* "),
 	)
 	db, err := sql.Open("postgres", connString)
 
 	if err != nil {
-		config.Error.Fatalf(
+		common.Error.Fatalf(
 			"Something bad happened during database connection: %s", err,
 		)
 	}

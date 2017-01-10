@@ -1,7 +1,9 @@
 package db
 
 import (
-	"github.com/RulzUrLife/lasagna/config"
+	"database/sql"
+	"fmt"
+	"github.com/RulzUrLife/lasagna/common"
 )
 
 type Ingredient struct {
@@ -18,13 +20,13 @@ SELECT gordon.ingredient.id, gordon.ingredient.name
 FROM gordon.ingredient
 `
 
-func ListIngredients() (*Ingredients, error) {
-	config.Trace.Println(ingredient_query)
+func ListIngredients() (*Ingredients, *common.HTTPError) {
+	common.Trace.Println(ingredient_query)
 
 	rows, err := DB.Query(ingredient_query)
 	if err != nil {
-		config.Error.Println(err)
-		return nil, err
+		common.Error.Println(err)
+		return nil, common.New500Error("Retrieving of ingredients failed")
 	}
 	defer rows.Close()
 
@@ -34,22 +36,31 @@ func ListIngredients() (*Ingredients, error) {
 		ingredient := &Ingredient{}
 		err = rows.Scan(&ingredient.Id, &ingredient.Name)
 		if err != nil {
-			config.Error.Println(err)
-			return nil, err
+			common.Error.Println(err)
+			return nil, common.New500Error("Retrieving of ingredients failed")
 		}
 		ingredients = append(ingredients, ingredient)
 	}
 	return &Ingredients{ingredients}, nil
 }
 
-func GetIngredient(id int) (*Ingredient, error) {
+func GetIngredient(id int) (*Ingredient, *common.HTTPError) {
 	ingredient := &Ingredient{}
 	q := ingredient_query + "WHERE gordon.ingredient.id = $1"
-	config.Trace.Printf("[%d]%s", id, q)
+	common.Trace.Printf("[%d]%s", id, q)
 
 	err := DB.QueryRow(q, id).Scan(&ingredient.Id, &ingredient.Name)
 	if err != nil {
-		config.Error.Println(err)
+		common.Error.Println(err)
+		if err == sql.ErrNoRows {
+			return nil, common.New404Error(fmt.Sprintf("Ingredient %d not found", id))
+		} else {
+			return nil, common.New500Error("Retrieving of ingredient failed")
+		}
 	}
-	return ingredient, err
+	return ingredient, nil
+}
+
+func PostIngredient(name string) (*Ingredient, error) {
+	return nil, nil
 }
