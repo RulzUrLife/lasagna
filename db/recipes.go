@@ -28,20 +28,18 @@ type Direction struct {
 	Text  string `json:"text"`
 }
 
-type Directions []Direction
-
 func (d *Direction) Scan(src interface{}) (err error) {
-	bytes := src.([]byte)
-	// remove enclosing parenthesis
-	bytes = bytes[1 : len(bytes)-1]
-
-	res := scan(bytes)
+	res := scan(src)
 	d.Title, d.Text = string(res[0]), string(res[1])
 	return nil
 }
 
-func scan(bytes []byte) (elems [][]byte) {
+func scan(src interface{}) (elems [][]byte) {
 	var elem []byte
+
+	bytes := src.([]byte)
+	// remove enclosing parenthesis
+	bytes = bytes[1 : len(bytes)-1]
 	for i := 0; i < len(bytes); {
 		elem, i = scanBytes(bytes, i)
 		elems = append(elems, elem)
@@ -82,10 +80,10 @@ func scanBytes(bytes []byte, i int) (elem []byte, _ int) {
 }
 
 type Recipe struct {
-	Id          int                 `json:"id"`
-	Name        string              `json:"name"`
-	Ingredients []*RecipeIngredient `json:"ingredients"`
-	Directions  Directions          `json:"directions"`
+	Id          int                `json:"id"`
+	Name        string             `json:"name"`
+	Ingredients []RecipeIngredient `json:"ingredients"`
+	Directions  []Direction        `json:"directions"`
 }
 
 type Recipes struct {
@@ -105,8 +103,7 @@ func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
 	defer rows.Close()
 	for rows.Next() {
 		recipe := &Recipe{}
-
-		ingredient := &RecipeIngredient{}
+		ingredient := RecipeIngredient{}
 
 		err = rows.Scan(
 			&recipe.Id, &recipe.Name, &pq.GenericArray{&recipe.Directions},
