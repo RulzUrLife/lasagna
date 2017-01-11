@@ -3,10 +3,11 @@ package db
 import (
 	"fmt"
 	"github.com/RulzUrLife/lasagna/common"
+	"github.com/lib/pq"
 )
 
 const query = `
-SELECT gordon.recipe.id, gordon.recipe.name,
+SELECT gordon.recipe.id, gordon.recipe.name, gordon.recipe.directions,
 	gordon.ingredient.id, gordon.ingredient.name,
 	gordon.recipe_ingredients.quantity, gordon.recipe_ingredients.measurement
 FROM gordon.recipe
@@ -22,10 +23,69 @@ type RecipeIngredient struct {
 	Ingredient
 }
 
+type Direction struct {
+	Title string `json:"title"`
+	Text  string `json:"text"`
+}
+
+type Directions []Direction
+
+func (d *Direction) Scan(src interface{}) (err error) {
+	bytes := src.([]byte)
+	// remove enclosing parenthesis
+	bytes = bytes[1 : len(bytes)-1]
+
+	res := scan(bytes)
+	d.Title, d.Text = string(res[0]), string(res[1])
+	return nil
+}
+
+func scan(bytes []byte) (elems [][]byte) {
+	var elem []byte
+	for i := 0; i < len(bytes); {
+		elem, i = scanBytes(bytes, i)
+		elems = append(elems, elem)
+	}
+	return
+}
+
+func scanBytes(bytes []byte, i int) (elem []byte, _ int) {
+	var escape bool
+
+	switch bytes[i] {
+	case '"':
+		for i++; i < len(bytes); i++ {
+			if escape {
+				if bytes[i] == ',' {
+					break
+				}
+				elem = append(elem, bytes[i])
+				escape = false
+			} else {
+				switch bytes[i] {
+				default:
+					elem = append(elem, bytes[i])
+				case '\\', '"':
+					escape = true
+				}
+			}
+		}
+	default:
+		for ; i < len(bytes); i++ {
+			if bytes[i] == ',' {
+				break
+			}
+			elem = append(elem, bytes[i])
+		}
+	}
+	return elem, i + 1
+}
+
 type Recipe struct {
 	Id          int                 `json:"id"`
 	Name        string              `json:"name"`
 	Ingredients []*RecipeIngredient `json:"ingredients"`
+	Directions  Directions          `json:"directions"`
 }
 
 type Recipes struct {
@@ -45,10 +105,12 @@ func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
 	defer rows.Close()
 	for rows.Next() {
 		recipe := &Recipe{}
+
 		ingredient := &RecipeIngredient{}
 
 		err = rows.Scan(
-			&recipe.Id, &recipe.Name, &ingredient.Id, &ingredient.Name,
+			&recipe.Id, &recipe.Name, &pq.GenericArray{&recipe.Directions},
+			&ingredient.Id, &ingredient.Name,
 			&ingredient.Quantity, &ingredient.Measurement,
 		)
 		if err != nil {
