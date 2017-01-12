@@ -99,6 +99,7 @@ func (e *Endpoint) get(w http.ResponseWriter, r *http.Request) {
 	} else if data, err := e.Get.Method(i); err != nil {
 		rw.Error(w, err)
 	} else {
+		common.Trace.Printf("%q", data)
 		rw.Render(w, data)
 	}
 }
