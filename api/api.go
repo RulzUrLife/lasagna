@@ -108,6 +108,7 @@ func (e *Endpoint) list(w http.ResponseWriter, r *http.Request) {
 	if data, err := e.List.Method(); err != nil {
 		rw.Error(w, err)
 	} else {
+		common.Trace.Printf("%q", data)
 		rw.Render(w, data)
 	}
 }

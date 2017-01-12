@@ -24,19 +24,19 @@ type Recipe struct {
 	Name        string             `json:"name"`
 	Ingredients []RecipeIngredient `json:"ingredients"`
 	Directions  []Direction        `json:"directions"`
-	Description string             `json:"description"`
-	Difficulty  int                `json:"difficulty"`
-	Duration    string             `json:"duration"`
-	People      int                `json:"people"`
-	Category    string             `json:"category"`
+	Description NullString         `json:"description"`
+	Difficulty  NullInt64          `json:"difficulty"`
+	Duration    NullString         `json:"duration"`
+	People      NullInt64          `json:"people"`
+	Category    NullString         `json:"category"`
 }
 
 type Recipes struct {
 	Recipes []*Recipe `json:"recipes"`
 }
 type RecipeIngredient struct {
-	Measurement string `json:"measurement"`
-	Quantity    int    `json:"quantity"`
+	Measurement NullString `json:"measurement"`
+	Quantity    NullInt64  `json:"quantity"`
 	Ingredient
 }
 
@@ -109,6 +109,9 @@ func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
 	defer rows.Close()
 	for rows.Next() {
 		recipe := &Recipe{}
+		// initialise empty arrays allow to marshal them correctly
+		// see https://danott.co/posts/json-marshalling-empty-slices-to-empty-arrays-in-go.html
+		recipe.Ingredients = make([]RecipeIngredient, 0)
 		ingredient := RecipeIngredient{}
 
 		err = rows.Scan(
@@ -122,12 +125,17 @@ func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
 			common.Error.Println(err)
 			return nil, common.New500Error(err.Error())
 		}
+		if len(recipe.Directions) == 0 {
+			recipe.Directions = make([]Direction, 0) // ensure empty array initialisation
+		}
 		if v, ok := recipes[recipe.Id]; ok {
 			recipe = v
 		} else {
 			recipes[recipe.Id] = recipe
 		}
-		recipe.Ingredients = append(recipe.Ingredients, ingredient)
+		if ingredient.Id.Valid {
+			recipe.Ingredients = append(recipe.Ingredients, ingredient)
+		}
 	}
 	for _, recipe := range recipes {
 		res = append(res, recipe)
