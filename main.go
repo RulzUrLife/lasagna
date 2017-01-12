@@ -28,6 +28,10 @@ func main() {
 		func() (interface{}, *common.HTTPError) { return db.ListIngredients() },
 		func(id int) (interface{}, *common.HTTPError) { return db.GetIngredient(id) },
 	)
+	mux.NewEndpoint("/utensils",
+		func() (interface{}, *common.HTTPError) { return db.ListUtensils() },
+		func(id int) (interface{}, *common.HTTPError) { return db.GetUtensil(id) },
+	)
 	mux.NewEndpoint("/recipes",
 		func() (interface{}, *common.HTTPError) { return db.ListRecipes() },
 		func(id int) (interface{}, *common.HTTPError) { return db.GetRecipe(id) },

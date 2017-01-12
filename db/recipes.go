@@ -37,7 +37,8 @@ type Recipes struct {
 type RecipeIngredient struct {
 	Measurement NullString `json:"measurement"`
 	Quantity    NullInt64  `json:"quantity"`
-	Ingredient
+	Id          NullInt64  `json:"id"`
+	Name        NullString `json:"name"`
 }
 
 type Direction struct {

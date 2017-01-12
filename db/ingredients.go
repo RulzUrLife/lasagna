@@ -7,8 +7,8 @@ import (
 )
 
 type Ingredient struct {
-	Id   NullInt64  `json:"id"`
-	Name NullString `json:"name"`
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type Ingredients struct {
