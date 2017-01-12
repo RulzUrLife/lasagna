@@ -8,6 +8,8 @@ import (
 
 const query = `
 SELECT gordon.recipe.id, gordon.recipe.name, gordon.recipe.directions,
+	gordon.recipe.description, gordon.recipe.difficulty, gordon.recipe.duration,
+	gordon.recipe.people, gordon.recipe.category,
 	gordon.ingredient.id, gordon.ingredient.name,
 	gordon.recipe_ingredients.quantity, gordon.recipe_ingredients.measurement
 FROM gordon.recipe
@@ -17,6 +19,21 @@ LEFT OUTER JOIN gordon.ingredient
 ON (gordon.recipe_ingredients.fk_ingredient = gordon.ingredient.id)
 `
 
+type Recipe struct {
+	Id          int                `json:"id"`
+	Name        string             `json:"name"`
+	Ingredients []RecipeIngredient `json:"ingredients"`
+	Directions  []Direction        `json:"directions"`
+	Description string             `json:"description"`
+	Difficulty  int                `json:"difficulty"`
+	Duration    string             `json:"duration"`
+	People      int                `json:"people"`
+	Category    string             `json:"category"`
+}
+
+type Recipes struct {
+	Recipes []*Recipe `json:"recipes"`
+}
 type RecipeIngredient struct {
 	Measurement string `json:"measurement"`
 	Quantity    int    `json:"quantity"`
@@ -79,17 +96,6 @@ func scanBytes(bytes []byte, i int) (elem []byte, _ int) {
 	return elem, i + 1
 }
 
-type Recipe struct {
-	Id          int                `json:"id"`
-	Name        string             `json:"name"`
-	Ingredients []RecipeIngredient `json:"ingredients"`
-	Directions  []Direction        `json:"directions"`
-}
-
-type Recipes struct {
-	Recipes []*Recipe `json:"recipes"`
-}
-
 func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
 	res := make([]*Recipe, 0)
 	recipes := map[int]*Recipe{}
@@ -107,6 +113,8 @@ func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
 
 		err = rows.Scan(
 			&recipe.Id, &recipe.Name, &pq.GenericArray{&recipe.Directions},
+			&recipe.Description, &recipe.Difficulty, &recipe.Duration,
+			&recipe.People, &recipe.Category,
 			&ingredient.Id, &ingredient.Name,
 			&ingredient.Quantity, &ingredient.Measurement,
 		)
