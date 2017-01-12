@@ -19,11 +19,17 @@ func index(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "Hello World!")
 }
 
+var static = http.StripPrefix(
+	"/static/", http.FileServer(http.Dir(common.Config.StaticDir)),
+)
+
 func main() {
 
 	common.Info.Println("Register URL patterns")
 	mux := &api.ServeMux{http.NewServeMux()}
 	mux.HandleFunc("/", index)
+
+	mux.Handle("/static/", static)
 	mux.NewEndpoint("/ingredients",
 		func() (interface{}, *common.HTTPError) { return db.ListIngredients() },
 		func(id int) (interface{}, *common.HTTPError) { return db.GetIngredient(id) },

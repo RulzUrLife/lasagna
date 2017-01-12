@@ -2,6 +2,7 @@
     "debug": true,
     "host": "localhost",
     "port": 8888,
+    "static": "static",
     "database": {
         "name": "potato",
         "user": "potato",
