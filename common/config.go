@@ -8,17 +8,20 @@ import (
 )
 
 type Configuration struct {
-	Debug     bool   `json:"debug"`
-	Host      string `json:"host"`
-	Port      int    `json:"port"`
-	StaticDir string `json:"static"`
-	Database  struct {
+	Debug    bool   `json:"debug"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Database struct {
 		Name     string `json:"name"`
 		User     string `json:"user"`
 		Password string `json:"password"`
 		Host     string `json:"host"`
 		Port     int    `json:"port"`
 	} `json:"database"`
+	Assets struct {
+		Static    string `json:"static"`
+		Templates string `json:"templates"`
+	} `json:"assets"`
 }
 
 var (

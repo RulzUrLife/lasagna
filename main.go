@@ -20,7 +20,7 @@ func index(w http.ResponseWriter, req *http.Request) {
 }
 
 var static = http.StripPrefix(
-	"/static/", http.FileServer(http.Dir(common.Config.StaticDir)),
+	"/static/", http.FileServer(http.Dir(common.Config.Assets.Static)),
 )
 
 func main() {

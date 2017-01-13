@@ -32,8 +32,8 @@ type Get struct {
 var errTplt = templates("error.html")
 
 func templates(paths ...string) *Templates {
-	base := path.Join("templates", "base.html")
-	paths = append([]string{"templates"}, paths...)
+	base := path.Join(common.Config.Assets.Templates, "base.html")
+	paths = append([]string{common.Config.Assets.Templates}, paths...)
 	return &Templates{
 		template.Must(template.ParseFiles(base, path.Join(paths...))),
 		nil,
