@@ -1,5 +1,5 @@
 {{ define "content" }}
 <ul>
-    {{range .Recipes}}<li>{{ .Name }}</li>{{end}}
+    {{range .Recipes.Values}}<li>{{ .Name }}</li>{{end}}
 </ul>
 {{ end }}

@@ -119,7 +119,7 @@ func ListRecipes() (interface{}, *common.HTTPError) {
 		return nil, err
 	} else {
 		return struct {
-			Recipes interface{} `json:"recipes"`
+			Recipes interface{} `json:"recipes"` // envelope wrapper
 		}{recipes}, nil
 	}
 }
