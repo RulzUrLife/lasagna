@@ -4,15 +4,21 @@ import (
 	"fmt"
 	"github.com/RulzUrLife/lasagna/common"
 	"github.com/lib/pq"
+	"strconv"
 )
 
 const query = `
 SELECT gordon.recipe.id, gordon.recipe.name, gordon.recipe.directions,
 	gordon.recipe.description, gordon.recipe.difficulty, gordon.recipe.duration,
 	gordon.recipe.people, gordon.recipe.category,
+	gordon.utensil.id, gordon.utensil.name,
 	gordon.ingredient.id, gordon.ingredient.name,
 	gordon.recipe_ingredients.quantity, gordon.recipe_ingredients.measurement
 FROM gordon.recipe
+LEFT OUTER JOIN gordon.recipe_utensils
+ON (gordon.recipe.id = gordon.recipe_utensils.fk_recipe)
+LEFT OUTER JOIN gordon.utensil
+ON (gordon.recipe_utensils.fk_utensil = gordon.utensil.id)
 LEFT OUTER JOIN gordon.recipe_ingredients
 ON (gordon.recipe.id = gordon.recipe_ingredients.fk_recipe)
 LEFT OUTER JOIN gordon.ingredient
@@ -22,7 +28,8 @@ ON (gordon.recipe_ingredients.fk_ingredient = gordon.ingredient.id)
 type Recipe struct {
 	Id          int                `json:"id"`
 	Name        string             `json:"name"`
-	Ingredients []RecipeIngredient `json:"ingredients"`
+	Ingredients *common.OrderedMap `json:"ingredients"`
+	Utensils    *common.OrderedMap `json:"utensils"`
 	Directions  []Direction        `json:"directions"`
 	Description NullString         `json:"description"`
 	Difficulty  NullInt64          `json:"difficulty"`
@@ -31,9 +38,6 @@ type Recipe struct {
 	Category    NullString         `json:"category"`
 }
 
-type Recipes struct {
-	Recipes []*Recipe `json:"recipes"`
-}
 type RecipeIngredient struct {
 	Measurement NullString `json:"measurement"`
 	Quantity    NullInt64  `json:"quantity"`
@@ -41,9 +45,26 @@ type RecipeIngredient struct {
 	Name        NullString `json:"name"`
 }
 
+func (ri RecipeIngredient) Hash() (id string) {
+	return ri.Id.Hash()
+}
+
+type RecipeUtensil struct {
+	Id   NullInt64  `json:"id"`
+	Name NullString `json:"name"`
+}
+
+func (ru RecipeUtensil) Hash() (id string) {
+	return ru.Id.Hash()
+}
+
 type Direction struct {
 	Title string `json:"title"`
 	Text  string `json:"text"`
+}
+
+func (r *Recipe) Hash() string {
+	return strconv.Itoa(r.Id)
 }
 
 func (d *Direction) Scan(src interface{}) (err error) {
@@ -52,54 +73,8 @@ func (d *Direction) Scan(src interface{}) (err error) {
 	return nil
 }
 
-func scan(src interface{}) (elems [][]byte) {
-	var elem []byte
-
-	bytes := src.([]byte)
-	// remove enclosing parenthesis
-	bytes = bytes[1 : len(bytes)-1]
-	for i := 0; i < len(bytes); {
-		elem, i = scanBytes(bytes, i)
-		elems = append(elems, elem)
-	}
-	return
-}
-
-func scanBytes(bytes []byte, i int) (elem []byte, _ int) {
-	var escape bool
-
-	switch bytes[i] {
-	case '"':
-		for i++; i < len(bytes); i++ {
-			if escape {
-				if bytes[i] == ',' {
-					break
-				}
-				elem = append(elem, bytes[i])
-				escape = false
-			} else {
-				switch bytes[i] {
-				default:
-					elem = append(elem, bytes[i])
-				case '\\', '"':
-					escape = true
-				}
-			}
-		}
-	default:
-		for ; i < len(bytes); i++ {
-			if bytes[i] == ',' {
-				break
-			}
-			elem = append(elem, bytes[i])
-		}
-	}
-	return elem, i + 1
-}
-
-func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
-	res := make([]*Recipe, 0)
-	recipes := map[int]*Recipe{}
+func dedup(q string, params ...interface{}) (*common.OrderedMap, *common.HTTPError) {
+	recipes := common.NewOrderedMap()
 	common.Trace.Printf("%v%s", params, q)
 
 	rows, err := DB.Query(q, params...)
@@ -109,16 +84,17 @@ func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		recipe := &Recipe{}
-		// initialise empty arrays allow to marshal them correctly
-		// see https://danott.co/posts/json-marshalling-empty-slices-to-empty-arrays-in-go.html
-		recipe.Ingredients = make([]RecipeIngredient, 0)
+		recipe := &Recipe{
+			Ingredients: common.NewOrderedMap(), Utensils: common.NewOrderedMap(),
+		}
 		ingredient := RecipeIngredient{}
+		utensil := RecipeUtensil{}
 
 		err = rows.Scan(
 			&recipe.Id, &recipe.Name, &pq.GenericArray{&recipe.Directions},
 			&recipe.Description, &recipe.Difficulty, &recipe.Duration,
 			&recipe.People, &recipe.Category,
+			&utensil.Id, &utensil.Name,
 			&ingredient.Id, &ingredient.Name,
 			&ingredient.Quantity, &ingredient.Measurement,
 		)
@@ -127,38 +103,33 @@ func dedup(q string, params ...interface{}) ([]*Recipe, *common.HTTPError) {
 			return nil, common.New500Error(err.Error())
 		}
 		if len(recipe.Directions) == 0 {
-			recipe.Directions = make([]Direction, 0) // ensure empty array initialisation
+			// initialise empty arrays allow to marshal them correctly
+			// see https://danott.co/posts/json-marshalling-empty-slices-to-empty-arrays-in-go.html
+			recipe.Directions = make([]Direction, 0)
 		}
-		if v, ok := recipes[recipe.Id]; ok {
-			recipe = v
-		} else {
-			recipes[recipe.Id] = recipe
-		}
-		if ingredient.Id.Valid {
-			recipe.Ingredients = append(recipe.Ingredients, ingredient)
-		}
+		recipe, _ = recipes.Append(recipe).(*Recipe)
+		recipe.Ingredients.Append(ingredient)
+		recipe.Utensils.Append(utensil)
 	}
-	for _, recipe := range recipes {
-		res = append(res, recipe)
-	}
-	return res, nil
+	return recipes, nil
 }
 
-func ListRecipes() (*Recipes, *common.HTTPError) {
+func ListRecipes() (interface{}, *common.HTTPError) {
 	if recipes, err := dedup(query); err != nil {
 		return nil, err
 	} else {
-		return &Recipes{recipes}, nil
+		return struct {
+			Recipes interface{} `json:"recipes"`
+		}{recipes}, nil
 	}
 }
 
-func GetRecipe(id int) (*Recipe, *common.HTTPError) {
-	recipes, err := dedup(query+"WHERE gordon.recipe.id = $1", id)
-	if err != nil {
+func GetRecipe(id int) (interface{}, *common.HTTPError) {
+	if recipes, err := dedup(query+"WHERE gordon.recipe.id = $1", id); err != nil {
 		return nil, err
-	} else if len(recipes) < 1 {
+	} else if recipe := recipes.Get(0); recipe == nil {
 		return nil, common.New404Error(fmt.Sprintf("Recipe %d not Found", id))
 	} else {
-		return recipes[0], nil
+		return recipe, nil
 	}
 }

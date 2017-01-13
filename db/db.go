@@ -27,7 +27,13 @@ func (ns NullString) MarshalJSON() ([]byte, error) {
 	} else {
 		return []byte("null"), nil
 	}
+}
 
+func (ni NullInt64) Hash() (id string) {
+	if ni.Valid {
+		id = strconv.FormatInt(ni.Int64, 10)
+	}
+	return
 }
 
 func (ni NullInt64) MarshalJSON() ([]byte, error) {
@@ -36,6 +42,51 @@ func (ni NullInt64) MarshalJSON() ([]byte, error) {
 	} else {
 		return []byte("null"), nil
 	}
+}
+
+func scan(src interface{}) (elems [][]byte) {
+	var elem []byte
+
+	bytes := src.([]byte)
+	// remove enclosing parenthesis
+	bytes = bytes[1 : len(bytes)-1]
+	for i := 0; i < len(bytes); {
+		elem, i = scanBytes(bytes, i)
+		elems = append(elems, elem)
+	}
+	return
+}
+
+func scanBytes(bytes []byte, i int) (elem []byte, _ int) {
+	var escape bool
+
+	switch bytes[i] {
+	case '"':
+		for i++; i < len(bytes); i++ {
+			if escape {
+				if bytes[i] == ',' {
+					break
+				}
+				elem = append(elem, bytes[i])
+				escape = false
+			} else {
+				switch bytes[i] {
+				default:
+					elem = append(elem, bytes[i])
+				case '\\', '"':
+					escape = true
+				}
+			}
+		}
+	default:
+		for ; i < len(bytes); i++ {
+			if bytes[i] == ',' {
+				break
+			}
+			elem = append(elem, bytes[i])
+		}
+	}
+	return elem, i + 1
 }
 
 func connect() *sql.DB {
