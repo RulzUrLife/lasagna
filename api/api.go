@@ -33,40 +33,44 @@ var errTplt = templates("error.html")
 
 func templates(paths ...string) *Templates {
 	base := path.Join(common.Config.Assets.Templates, "base.html")
-	paths = append([]string{common.Config.Assets.Templates}, paths...)
+	p := path.Join(append([]string{common.Config.Assets.Templates}, paths...)...)
+	funcs := template.FuncMap{
+		"div": div, "slice": slice,
+	}
+	common.Info.Printf("Register template %s", p)
 	return &Templates{
-		template.Must(template.ParseFiles(base, path.Join(paths...))),
+		template.Must(template.New("base.html").Funcs(funcs).ParseFiles(base, p)),
 		nil,
 	}
 }
 
 type ResponseWriter interface {
-	Render(w http.ResponseWriter, data interface{})
-	Error(w http.ResponseWriter, err *common.HTTPError)
+	Render(w http.ResponseWriter, data interface{}) error
+	Error(w http.ResponseWriter, err *common.HTTPError) error
 }
 
 type HTMLResponseWriter struct {
 	*template.Template
 }
 
-func (rw *HTMLResponseWriter) Render(w http.ResponseWriter, data interface{}) {
-	rw.Template.Execute(w, data)
+func (rw *HTMLResponseWriter) Render(w http.ResponseWriter, data interface{}) error {
+	return rw.Template.Execute(w, data)
 }
 
-func (rw *HTMLResponseWriter) Error(w http.ResponseWriter, err *common.HTTPError) {
+func (rw *HTMLResponseWriter) Error(w http.ResponseWriter, err *common.HTTPError) error {
 	w.WriteHeader(err.Code)
-	errTplt.HTML.Execute(w, err)
+	return errTplt.HTML.Execute(w, err)
 }
 
 type JSONResponseWriter struct{}
 
-func (rw *JSONResponseWriter) Render(w http.ResponseWriter, data interface{}) {
-	json.NewEncoder(w).Encode(data)
+func (rw *JSONResponseWriter) Render(w http.ResponseWriter, data interface{}) error {
+	return json.NewEncoder(w).Encode(data)
 }
 
-func (rw *JSONResponseWriter) Error(w http.ResponseWriter, err *common.HTTPError) {
+func (rw *JSONResponseWriter) Error(w http.ResponseWriter, err *common.HTTPError) error {
 	w.WriteHeader(err.Code)
-	json.NewEncoder(w).Encode(err)
+	return json.NewEncoder(w).Encode(err)
 }
 
 func parseHeaders(w http.ResponseWriter, r *http.Request, t *Templates) ResponseWriter {
@@ -97,9 +101,10 @@ func (g *Get) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		rw.Error(w, common.NewHTTPError("400 Bad Request", http.StatusBadRequest))
 	} else if data, err := g.Method(i); err != nil {
 		rw.Error(w, err)
+	} else if err := rw.Render(w, data); err != nil {
+		common.Error.Printf("Rendering failed: %s", err)
 	} else {
 		common.Trace.Printf("%q", data)
-		rw.Render(w, data)
 	}
 }
 
@@ -107,9 +112,10 @@ func (l *List) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rw := parseHeaders(w, r, l.Templates)
 	if data, err := l.Method(); err != nil {
 		rw.Error(w, err)
+	} else if err := rw.Render(w, data); err != nil {
+		common.Error.Printf("Rendering failed: %s", err)
 	} else {
 		common.Trace.Printf("%q", data)
-		rw.Render(w, data)
 	}
 }
 

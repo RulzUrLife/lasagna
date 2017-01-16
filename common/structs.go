@@ -33,6 +33,10 @@ func (om *OrderedMap) Get(index int) Deduplier {
 	}
 }
 
+func (om *OrderedMap) Len() int {
+	return len(om.order)
+}
+
 func (om *OrderedMap) Append(d Deduplier) Deduplier {
 	if id := d.Hash(); id == "" {
 		d = nil

@@ -1,5 +1,56 @@
+{{ define "ingredient" }}
+<div class="col1of2">
+    <ul>
+        {{ range $_, $ingredient := . }}
+        <li>{{$ingredient.Quantity.Int64}} {{$ingredient.Measurement.String}} {{$ingredient.Name.String}}</li>
+        {{ end }}
+    </ul>
+</div>
+{{ end }}
+{{ define "utensil" }}
+<div class="col1of2">
+    <ul>
+        {{ range $_, $utensil := . }}
+        <li>{{$utensil.Name.String}}</li>
+        {{ end }}
+    </ul>
+</div>
+{{ end }}
+
+
 {{ define "content" }}
-<h1>{{ .Name }}</h1>
+<div class="recipe">
+    <h1 class="center">{{.Name}}</h1>
+
+    <section class="description">
+        <div class="col1of1 m1y metadata">
+            <div class="col1of3 text-right">category: {{.Category.String}}</div>
+            <div class="col1of3 center">duration: {{.Duration.String}}</div>
+            <div class="col1of3 demo">difficulty: {{.Difficulty.Int64}}</div>
+        </div>
+        <p class="col1of1 m1y center">{{ .Description.String }} </p>
+    </section>
+
+    <section class="col1of1 m1y ingredients">
+        {{ $pivot := .Ingredients.Len | div 2 }}
+        {{ template "ingredient" .Ingredients.Values | slice 0 $pivot }}
+        {{ template "ingredient" .Ingredients.Values | slice $pivot .Ingredients.Len }}
+    </section>
+
+    <section class="col1of1 m1y utensils">
+        {{ $pivot := .Utensils.Len | div 2 }}
+        {{ template "utensil" .Utensils.Values | slice 0 $pivot }}
+        {{ template "utensil" .Utensils.Values | slice $pivot .Utensils.Len }}
+    </section>
+
+    <article class="col1of1 m1y directions">
+        {{ range $_, $direction := .Directions }}
+        <section class="direction">
+            {{$direction.Title}}: {{$direction.Text}}
+        </section>
+        {{ end }}
+    </article>
+</div>
 {{ end }}
 
 {{ template "content" . }}
