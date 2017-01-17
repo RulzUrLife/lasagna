@@ -11,6 +11,7 @@ type Configuration struct {
 	Debug    bool   `json:"debug"`
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
+	Url      string `json:"url"`
 	Database struct {
 		Name     string `json:"name"`
 		User     string `json:"user"`

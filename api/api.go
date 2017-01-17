@@ -35,7 +35,7 @@ func templates(paths ...string) *Templates {
 	base := path.Join(common.Config.Assets.Templates, "base.html")
 	p := path.Join(append([]string{common.Config.Assets.Templates}, paths...)...)
 	funcs := template.FuncMap{
-		"div": div, "slice": slice,
+		"div": div, "slice": slice, "url": url,
 	}
 	common.Info.Printf("Register template %s", p)
 	return &Templates{

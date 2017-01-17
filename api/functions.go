@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/RulzUrLife/lasagna/common"
 	"math"
 	"reflect"
 )
@@ -27,4 +29,10 @@ func slice(start, end int, item interface{}) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("cannot slice type %s, need array, slice or string", k)
 	}
+}
+
+func url(path string, items ...interface{}) (string, error) {
+	b := bytes.NewBuffer(nil)
+	_, err := fmt.Fprintf(b, common.Url(common.Config.Url, path), items...)
+	return b.String(), err
 }

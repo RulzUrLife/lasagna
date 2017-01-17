@@ -1,5 +1,5 @@
 {{ define "content" }}
 <ul>
-    {{range .Recipes.Values}}<li><a href="/recipes/{{.Id}}">{{ .Name }}</a></li>{{end}}
+    {{range .Recipes.Values}}<li><a href="{{ url "recipes/%d" .Id }}">{{ .Name }}</a></li>{{end}}
 </ul>
 {{ end }}
