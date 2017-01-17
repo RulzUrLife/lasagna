@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/RulzUrLife/lasagna/common"
 	"net/http"
-	"path"
 	"strconv"
 	"strings"
 	"text/template"
@@ -32,8 +31,8 @@ type Get struct {
 var errTplt = templates("error.html")
 
 func templates(paths ...string) *Templates {
-	base := path.Join(common.Config.Assets.Templates, "base.html")
-	p := path.Join(append([]string{common.Config.Assets.Templates}, paths...)...)
+	base := common.Path(common.Config.Assets.Templates, "base.html")
+	p := common.Path(append([]string{common.Config.Assets.Templates}, paths...)...)
 	funcs := template.FuncMap{
 		"div": div, "slice": slice, "url": url,
 	}
@@ -128,8 +127,5 @@ func (mux *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (mux *ServeMux) NewEndpoint(name string, list ListMethod, get GetMethod) {
 	mux.Handle(name, &List{list, templates(name, "list.html")})
-	mux.Handle(
-		strings.Join([]string{name, "/"}, ""),
-		&Get{name, get, templates(name, "get.html")},
-	)
+	mux.Handle(common.Url("", name, ""), &Get{name, get, templates(name, "get.html")})
 }
