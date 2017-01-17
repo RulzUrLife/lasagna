@@ -31,8 +31,12 @@ func slice(start, end int, item interface{}) (interface{}, error) {
 	}
 }
 
-func url(path string, items ...interface{}) (string, error) {
+func url(path string, items ...interface{}) (_ string, err error) {
 	b := bytes.NewBuffer(nil)
-	_, err := fmt.Fprintf(b, common.Url(common.Config.Url, path), items...)
+	if base := common.Config.Url; base == "" {
+		_, err = fmt.Fprintf(b, common.Url(path), items...)
+	} else {
+		_, err = fmt.Fprintf(b, common.Url(base, path), items...)
+	}
 	return b.String(), err
 }

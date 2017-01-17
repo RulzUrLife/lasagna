@@ -11,16 +11,12 @@ type Ingredient struct {
 	Name string `json:"name"`
 }
 
-type Ingredients struct {
-	Ingredients []*Ingredient `json:"ingredients"`
-}
-
 const ingredient_query = `
 SELECT gordon.ingredient.id, gordon.ingredient.name
 FROM gordon.ingredient
 `
 
-func ListIngredients() (*Ingredients, *common.HTTPError) {
+func ListIngredients() (interface{}, *common.HTTPError) {
 	common.Trace.Println(ingredient_query)
 
 	rows, err := DB.Query(ingredient_query)
@@ -41,10 +37,12 @@ func ListIngredients() (*Ingredients, *common.HTTPError) {
 		}
 		ingredients = append(ingredients, ingredient)
 	}
-	return &Ingredients{ingredients}, nil
+	return struct {
+		Ingredients []*Ingredient `json:"ingredients"`
+	}{ingredients}, nil
 }
 
-func GetIngredient(id int) (*Ingredient, *common.HTTPError) {
+func GetIngredient(id int) (interface{}, *common.HTTPError) {
 	ingredient := &Ingredient{}
 	q := ingredient_query + "WHERE gordon.ingredient.id = $1"
 	common.Trace.Printf("[%d]%s", id, q)
@@ -59,8 +57,4 @@ func GetIngredient(id int) (*Ingredient, *common.HTTPError) {
 		}
 	}
 	return ingredient, nil
-}
-
-func PostIngredient(name string) (*Ingredient, error) {
-	return nil, nil
 }

@@ -17,6 +17,10 @@ type Templates struct {
 	XML  *template.Template
 }
 
+type Create struct {
+	*Templates
+}
+
 type List struct {
 	Method ListMethod
 	*Templates
@@ -118,6 +122,17 @@ func (l *List) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (c *Create) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rw := parseHeaders(w, r, c.Templates)
+	switch rw.(type) {
+	case *HTMLResponseWriter:
+		rw.Render(w, struct{}{})
+	default:
+		// endpoint not available for something else than html
+		rw.Error(w, common.New404Error("Endpoint only exists for mimetype: text/html"))
+	}
+}
+
 type ServeMux struct{ *http.ServeMux }
 
 func (mux *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -126,6 +141,7 @@ func (mux *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mux *ServeMux) NewEndpoint(name string, list ListMethod, get GetMethod) {
-	mux.Handle(name, &List{list, templates(name, "list.html")})
-	mux.Handle(common.Url("", name, ""), &Get{name, get, templates(name, "get.html")})
+	mux.Handle(common.Url(name), &List{list, templates(name, "list.html")})
+	mux.Handle(common.Url(name, ""), &Get{common.Url(name), get, templates(name, "get.html")})
+	mux.Handle(common.Url(name, "new"), &Create{templates(name, "create.html")})
 }

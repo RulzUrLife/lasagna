@@ -9,6 +9,7 @@ func Url(elems ...string) string {
 	for i, elem := range elems {
 		elems[i] = strings.Trim(elem, "/")
 	}
+	elems = append([]string{""}, elems...)
 	return strings.Join(elems, "/")
 }
 

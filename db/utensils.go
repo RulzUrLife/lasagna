@@ -11,16 +11,12 @@ type Utensil struct {
 	Name string `json:"name"`
 }
 
-type Utensils struct {
-	Utensils []*Utensil `json:"utensils"`
-}
-
 const utensil_query = `
 SELECT gordon.utensil.id, gordon.utensil.name
 FROM gordon.utensil
 `
 
-func ListUtensils() (*Utensils, *common.HTTPError) {
+func ListUtensils() (interface{}, *common.HTTPError) {
 	common.Trace.Println(utensil_query)
 
 	rows, err := DB.Query(utensil_query)
@@ -41,10 +37,12 @@ func ListUtensils() (*Utensils, *common.HTTPError) {
 		}
 		utensils = append(utensils, utensil)
 	}
-	return &Utensils{utensils}, nil
+	return struct {
+		Utensils []*Utensil `json:"utensils"`
+	}{utensils}, nil
 }
 
-func GetUtensil(id int) (*Utensil, *common.HTTPError) {
+func GetUtensil(id int) (interface{}, *common.HTTPError) {
 	utensil := &Utensil{}
 	q := utensil_query + "WHERE gordon.utensil.id = $1"
 	common.Trace.Printf("[%d]%s", id, q)

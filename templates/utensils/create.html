@@ -1,0 +1,11 @@
+{{ define "content" }}
+<div class="col1of1">
+    <h1 class="center">Create a new utensil</h1>
+    <form>
+        <label for="name">Name:</label>
+        <input id="name" type="text" name="name"/>
+    </form>
+</div>
+{{ end }}
+
+{{ template "content" . }}
