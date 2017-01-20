@@ -4,28 +4,28 @@ import (
 	"encoding/json"
 )
 
-type Deduplier interface {
+type Resource interface {
 	Hash() string
 }
 
 type OrderedMap struct {
-	elements map[string]Deduplier
+	elements map[string]Resource
 	order    []string
 }
 
 func NewOrderedMap() *OrderedMap {
-	return &OrderedMap{map[string]Deduplier{}, []string{}}
+	return &OrderedMap{map[string]Resource{}, []string{}}
 }
 
-func (om *OrderedMap) Values() []Deduplier {
-	res := make([]Deduplier, 0)
+func (om *OrderedMap) Values() []Resource {
+	res := make([]Resource, 0)
 	for _, index := range om.order {
 		res = append(res, om.elements[index])
 	}
 	return res
 }
 
-func (om *OrderedMap) Get(index int) Deduplier {
+func (om *OrderedMap) Get(index int) Resource {
 	if index < len(om.order) {
 		return om.elements[om.order[index]]
 	} else {
@@ -37,16 +37,16 @@ func (om *OrderedMap) Len() int {
 	return len(om.order)
 }
 
-func (om *OrderedMap) Append(d Deduplier) Deduplier {
-	if id := d.Hash(); id == "" {
-		d = nil
+func (om *OrderedMap) Append(r Resource) Resource {
+	if id := r.Hash(); id == "" {
+		r = nil
 	} else if v, ok := om.elements[id]; ok {
-		d = v
+		r = v
 	} else {
-		om.elements[id] = d
+		om.elements[id] = r
 		om.order = append(om.order, id)
 	}
-	return d
+	return r
 }
 
 func (om *OrderedMap) MarshalJSON() ([]byte, error) {
