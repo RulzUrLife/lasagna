@@ -140,6 +140,9 @@ func (g *Get) ServeHTTP(rw ResponseWriter, r *http.Request) {
 }
 
 func (l *List) ParsePost(rw ResponseWriter, r *http.Request) (common.Endpoint, *common.HTTPError) {
+	var err error
+	var e = l.New()
+
 	defer r.Body.Close()
 	switch rw.(type) {
 	case *HTMLResponseWriter:
@@ -153,12 +156,20 @@ func (l *List) ParsePost(rw ResponseWriter, r *http.Request) (common.Endpoint, *
 	case *JSONResponseWriter:
 		//
 		decoder := json.NewDecoder(r.Body)
-		err := decoder.Decode(l.Endpoint)
-		if err != nil {
+
+		if err = decoder.Decode(e); err != nil {
+			return nil, common.New400Error(err.Error())
+		} else if err = e.Validate(); err != nil {
 			return nil, common.New400Error(err.Error())
 		}
 	}
-	return nil, nil
+	if err = e.Save(); err != nil {
+		common.Error.Printf("%s", err)
+		return nil, common.New500Error(err.Error())
+	} else {
+		common.Trace.Printf("%q", e)
+		return e, nil
+	}
 }
 
 func (l *List) ServeHTTP(rw ResponseWriter, r *http.Request) {
@@ -173,7 +184,7 @@ func (l *List) ServeHTTP(rw ResponseWriter, r *http.Request) {
 					http.StatusSeeOther,
 				)
 			default:
-				rw.Write(r)
+				rw.Write(resource)
 			}
 		}
 	} else {

@@ -67,6 +67,10 @@ func (r *Recipe) Hash() string {
 	return strconv.Itoa(r.Id)
 }
 
+func (_ *Recipe) New() interface{} {
+	return &Recipe{}
+}
+
 func (d *Direction) Scan(src interface{}) (err error) {
 	res := scan(src)
 	d.Title, d.Text = string(res[0]), string(res[1])

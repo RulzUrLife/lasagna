@@ -12,6 +12,9 @@ type Endpoint interface {
 	Resource
 	List() (interface{}, *HTTPError)
 	Get(int) (interface{}, *HTTPError)
+	New() Endpoint
+	Validate() error
+	Save() error
 }
 
 type OrderedMap struct {

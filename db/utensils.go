@@ -21,6 +21,10 @@ func (u *Utensil) Hash() string {
 	return strconv.Itoa(u.Id)
 }
 
+func (_ *Utensil) New() interface{} {
+	return &Utensil{}
+}
+
 func (_ *Utensil) List() (interface{}, *common.HTTPError) {
 	common.Trace.Println(utensil_query)
 

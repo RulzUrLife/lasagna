@@ -13,6 +13,10 @@ var (
 	DB = connect()
 )
 
+const (
+	invalid = "Invalid attribute '%s'"
+)
+
 type NullString struct {
 	sql.NullString
 }

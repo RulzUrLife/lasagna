@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/RulzUrLife/lasagna/common"
 	"strconv"
@@ -16,9 +17,18 @@ const ingredient_query = `
 SELECT gordon.ingredient.id, gordon.ingredient.name
 FROM gordon.ingredient
 `
+const ingredient_save_query = `
+INSERT INTO gordon.ingredient (name)
+VALUES ($1)
+RETURNING gordon.ingredient.id, gordon.ingredient.name
+`
 
 func (i *Ingredient) Hash() string {
 	return strconv.Itoa(i.Id)
+}
+
+func (_ *Ingredient) New() common.Endpoint {
+	return &Ingredient{}
 }
 
 func (_ *Ingredient) List() (interface{}, *common.HTTPError) {
@@ -62,4 +72,15 @@ func (_ *Ingredient) Get(id int) (interface{}, *common.HTTPError) {
 		}
 	}
 	return ingredient, nil
+}
+
+func (i *Ingredient) Validate() error {
+	if i.Name == "" {
+		return errors.New(fmt.Sprintf(invalid, "name"))
+	}
+	return nil
+}
+
+func (i *Ingredient) Save() error {
+	return DB.QueryRow(ingredient_save_query, i.Name).Scan(&i.Id, &i.Name)
 }
