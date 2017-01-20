@@ -1,9 +1,10 @@
 {{ define "content" }}
 <div class="col1of1">
     <h1 class="center">Create a new ingredient</h1>
-    <form>
+    <form action="{{ url "ingredients"}}" method="post">
         <label for="name">Name:</label>
         <input id="name" type="text" name="name"/>
+        <input type="submit" value="Create"/>
     </form>
 </div>
 {{ end }}

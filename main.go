@@ -28,9 +28,9 @@ func main() {
 	api.Mux.HandleFunc("/", index)
 	api.Mux.Handle("/static/", static)
 
-	api.Mux.NewEndpoint("ingredients", db.ListIngredients, db.GetIngredient)
-	api.Mux.NewEndpoint("utensils", db.ListUtensils, db.GetUtensil)
-	api.Mux.NewEndpoint("recipes", db.ListRecipes, db.GetRecipe)
+	api.Mux.NewEndpoint("ingredients", &db.Ingredient{})
+	api.Mux.NewEndpoint("utensils", &db.Utensil{})
+	api.Mux.NewEndpoint("recipes", &db.Recipe{})
 
 	addr := fmt.Sprintf("%s:%d", common.Config.Host, common.Config.Port)
 	s := &http.Server{

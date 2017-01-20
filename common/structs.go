@@ -8,6 +8,12 @@ type Resource interface {
 	Hash() string
 }
 
+type Endpoint interface {
+	Resource
+	List() (interface{}, *HTTPError)
+	Get(int) (interface{}, *HTTPError)
+}
+
 type OrderedMap struct {
 	elements map[string]Resource
 	order    []string

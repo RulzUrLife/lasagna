@@ -114,7 +114,7 @@ func dedup(q string, params ...interface{}) (*common.OrderedMap, *common.HTTPErr
 	return recipes, nil
 }
 
-func ListRecipes() (interface{}, *common.HTTPError) {
+func (_ *Recipe) List() (interface{}, *common.HTTPError) {
 	if recipes, err := dedup(query); err != nil {
 		return nil, err
 	} else {
@@ -124,7 +124,7 @@ func ListRecipes() (interface{}, *common.HTTPError) {
 	}
 }
 
-func GetRecipe(id int) (interface{}, *common.HTTPError) {
+func (_ *Recipe) Get(id int) (interface{}, *common.HTTPError) {
 	if recipes, err := dedup(query+"WHERE gordon.recipe.id = $1", id); err != nil {
 		return nil, err
 	} else if recipe := recipes.Get(0); recipe == nil {

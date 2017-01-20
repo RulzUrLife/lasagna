@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/RulzUrLife/lasagna/common"
+	"strconv"
 )
 
 type Ingredient struct {
@@ -16,7 +17,11 @@ SELECT gordon.ingredient.id, gordon.ingredient.name
 FROM gordon.ingredient
 `
 
-func ListIngredients() (interface{}, *common.HTTPError) {
+func (i *Ingredient) Hash() string {
+	return strconv.Itoa(i.Id)
+}
+
+func (_ *Ingredient) List() (interface{}, *common.HTTPError) {
 	common.Trace.Println(ingredient_query)
 
 	rows, err := DB.Query(ingredient_query)
@@ -42,7 +47,7 @@ func ListIngredients() (interface{}, *common.HTTPError) {
 	}{ingredients}, nil
 }
 
-func GetIngredient(id int) (interface{}, *common.HTTPError) {
+func (_ *Ingredient) Get(id int) (interface{}, *common.HTTPError) {
 	ingredient := &Ingredient{}
 	q := ingredient_query + "WHERE gordon.ingredient.id = $1"
 	common.Trace.Printf("[%d]%s", id, q)

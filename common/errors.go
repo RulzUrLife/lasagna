@@ -21,3 +21,7 @@ func New404Error(msg string) *HTTPError {
 func New500Error(msg string) *HTTPError {
 	return NewHTTPError(msg, http.StatusInternalServerError)
 }
+
+func New400Error(msg string) *HTTPError {
+	return NewHTTPError(msg, http.StatusBadRequest)
+}

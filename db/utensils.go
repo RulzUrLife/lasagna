@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/RulzUrLife/lasagna/common"
+	"strconv"
 )
 
 type Utensil struct {
@@ -16,7 +17,11 @@ SELECT gordon.utensil.id, gordon.utensil.name
 FROM gordon.utensil
 `
 
-func ListUtensils() (interface{}, *common.HTTPError) {
+func (u *Utensil) Hash() string {
+	return strconv.Itoa(u.Id)
+}
+
+func (_ *Utensil) List() (interface{}, *common.HTTPError) {
 	common.Trace.Println(utensil_query)
 
 	rows, err := DB.Query(utensil_query)
@@ -42,7 +47,7 @@ func ListUtensils() (interface{}, *common.HTTPError) {
 	}{utensils}, nil
 }
 
-func GetUtensil(id int) (interface{}, *common.HTTPError) {
+func (_ *Utensil) Get(id int) (interface{}, *common.HTTPError) {
 	utensil := &Utensil{}
 	q := utensil_query + "WHERE gordon.utensil.id = $1"
 	common.Trace.Printf("[%d]%s", id, q)

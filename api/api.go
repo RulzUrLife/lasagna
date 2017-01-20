@@ -9,9 +9,6 @@ import (
 	"text/template"
 )
 
-type ListMethod func() (interface{}, *common.HTTPError)
-type GetMethod func(int) (interface{}, *common.HTTPError)
-
 type Templates struct {
 	HTML *template.Template
 	XML  *template.Template
@@ -22,26 +19,25 @@ type Create struct {
 }
 
 type List struct {
-	Method ListMethod
 	*BaseHandler
 }
 
 type Get struct {
-	Method GetMethod
 	*BaseHandler
 }
 
 type BaseHandler struct {
 	Name string
 	*Templates
+	common.Endpoint
 }
 
 func (bh *BaseHandler) GetTemplates() *Templates {
 	return bh.Templates
 }
 
-func NewHandler(name string, html string) *BaseHandler {
-	return &BaseHandler{common.Url(name), templates(name, html)}
+func NewHandler(name string, html string, ressource common.Endpoint) *BaseHandler {
+	return &BaseHandler{common.Url(name), templates(name, html), ressource}
 }
 
 type Handler interface {
@@ -134,7 +130,7 @@ func (g *Get) ServeHTTP(rw ResponseWriter, r *http.Request) {
 		http.Redirect(rw.Writer(), r, g.Name, http.StatusSeeOther)
 	} else if i, err := strconv.Atoi(url); err != nil {
 		rw.Write(common.NewHTTPError("400 Bad Request", http.StatusBadRequest))
-	} else if data, err := g.Method(i); err != nil {
+	} else if data, err := g.Get(i); err != nil {
 		rw.Write(err)
 	} else if err := rw.Write(data); err != nil {
 		common.Error.Printf("Rendering failed: %s", err)
@@ -143,13 +139,51 @@ func (g *Get) ServeHTTP(rw ResponseWriter, r *http.Request) {
 	}
 }
 
+func (l *List) ParsePost(rw ResponseWriter, r *http.Request) (common.Endpoint, *common.HTTPError) {
+	defer r.Body.Close()
+	switch rw.(type) {
+	case *HTMLResponseWriter:
+		//
+		err := r.ParseForm()
+		if err != nil {
+			return nil, common.New400Error(err.Error())
+		}
+		common.Trace.Printf("%q", r.Form)
+
+	case *JSONResponseWriter:
+		//
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(l.Endpoint)
+		if err != nil {
+			return nil, common.New400Error(err.Error())
+		}
+	}
+	return nil, nil
+}
+
 func (l *List) ServeHTTP(rw ResponseWriter, r *http.Request) {
-	if data, err := l.Method(); err != nil {
-		rw.Write(err)
-	} else if err := rw.Write(data); err != nil {
-		common.Error.Printf("Rendering failed: %s", err)
+	if r.Method == http.MethodPost {
+		if resource, err := l.ParsePost(rw, r); err != nil {
+			rw.Write(err)
+		} else {
+			switch rw.(type) {
+			case *HTMLResponseWriter:
+				http.Redirect(
+					rw.Writer(), r, common.Url(l.Name, resource.Hash()),
+					http.StatusSeeOther,
+				)
+			default:
+				rw.Write(r)
+			}
+		}
 	} else {
-		common.Trace.Printf("%q", data)
+		if data, err := l.List(); err != nil {
+			rw.Write(err)
+		} else if err := rw.Write(data); err != nil {
+			common.Error.Printf("Rendering failed: %s", err)
+		} else {
+			common.Trace.Printf("%q", data)
+		}
 	}
 }
 
@@ -170,10 +204,10 @@ func (mux *serveMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mux.ServeMux.ServeHTTP(w, r)
 }
 
-func (mux *serveMux) NewEndpoint(name string, list ListMethod, get GetMethod) {
-	mux.HandleFunc(common.Url(name), Handle(&List{list, NewHandler(name, "list.html")}))
-	mux.HandleFunc(common.Url(name, ""), Handle(&Get{get, NewHandler(name, "get.html")}))
-	mux.HandleFunc(common.Url(name, "new"), Handle(&Create{NewHandler(name, "create.html")}))
+func (mux *serveMux) NewEndpoint(name string, ressource common.Endpoint) {
+	mux.HandleFunc(common.Url(name), Handle(&List{NewHandler(name, "list.html", ressource)}))
+	mux.HandleFunc(common.Url(name, ""), Handle(&Get{NewHandler(name, "get.html", ressource)}))
+	mux.HandleFunc(common.Url(name, "new"), Handle(&Create{NewHandler(name, "create.html", ressource)}))
 }
 
 var Mux = &serveMux{http.NewServeMux()}
