@@ -18,18 +18,42 @@ type Templates struct {
 }
 
 type Create struct {
-	*Templates
+	*BaseHandler
 }
 
 type List struct {
 	Method ListMethod
-	*Templates
+	*BaseHandler
 }
 
 type Get struct {
-	Name   string
 	Method GetMethod
+	*BaseHandler
+}
+
+type BaseHandler struct {
+	Name string
 	*Templates
+}
+
+func (bh *BaseHandler) GetTemplates() *Templates {
+	return bh.Templates
+}
+
+func NewHandler(name string, html string) *BaseHandler {
+	return &BaseHandler{common.Url(name), templates(name, html)}
+}
+
+type Handler interface {
+	ServeHTTP(w ResponseWriter, r *http.Request)
+	GetTemplates() *Templates
+}
+
+func Handle(h Handler) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		rw := parseHeaders(w, r, h.GetTemplates())
+		h.ServeHTTP(rw, r)
+	}
 }
 
 var errTplt = templates("error.html")
@@ -48,32 +72,41 @@ func templates(paths ...string) *Templates {
 }
 
 type ResponseWriter interface {
-	Render(w http.ResponseWriter, data interface{}) error
-	Error(w http.ResponseWriter, err *common.HTTPError) error
+	Write(data interface{}) error
+	Writer() http.ResponseWriter
 }
 
 type HTMLResponseWriter struct {
+	w http.ResponseWriter
 	*template.Template
 }
 
-func (rw *HTMLResponseWriter) Render(w http.ResponseWriter, data interface{}) error {
-	return rw.Template.Execute(w, data)
+func (rw *HTMLResponseWriter) Write(data interface{}) error {
+	if err, ok := data.(*common.HTTPError); ok {
+		rw.w.WriteHeader(err.Code)
+		return errTplt.HTML.Execute(rw.w, data)
+	} else {
+		return rw.Template.Execute(rw.w, data)
+	}
 }
 
-func (rw *HTMLResponseWriter) Error(w http.ResponseWriter, err *common.HTTPError) error {
-	w.WriteHeader(err.Code)
-	return errTplt.HTML.Execute(w, err)
+func (rw *HTMLResponseWriter) Writer() http.ResponseWriter {
+	return rw.w
 }
 
-type JSONResponseWriter struct{}
-
-func (rw *JSONResponseWriter) Render(w http.ResponseWriter, data interface{}) error {
-	return json.NewEncoder(w).Encode(data)
+type JSONResponseWriter struct {
+	w http.ResponseWriter
 }
 
-func (rw *JSONResponseWriter) Error(w http.ResponseWriter, err *common.HTTPError) error {
-	w.WriteHeader(err.Code)
-	return json.NewEncoder(w).Encode(err)
+func (rw *JSONResponseWriter) Write(data interface{}) error {
+	if err, ok := data.(*common.HTTPError); ok {
+		rw.w.WriteHeader(err.Code)
+	}
+	return json.NewEncoder(rw.w).Encode(data)
+}
+
+func (rw *JSONResponseWriter) Writer() http.ResponseWriter {
+	return rw.w
 }
 
 func parseHeaders(w http.ResponseWriter, r *http.Request, t *Templates) ResponseWriter {
@@ -84,7 +117,7 @@ func parseHeaders(w http.ResponseWriter, r *http.Request, t *Templates) Response
 		case "text/html":
 			common.Trace.Printf("HTML rendering")
 			w.Header().Set("Content-Type", "text/html")
-			return &HTMLResponseWriter{t.HTML}
+			return &HTMLResponseWriter{w, t.HTML}
 		case "application/xhtml+xml":
 			common.Trace.Printf("XML rendering")
 			w.Header().Set("Content-Type", "application/xhtml+xml")
@@ -93,55 +126,54 @@ func parseHeaders(w http.ResponseWriter, r *http.Request, t *Templates) Response
 	}
 	common.Trace.Printf("JSON rendering")
 	w.Header().Set("Content-Type", "application/json")
-	return &JSONResponseWriter{}
+	return &JSONResponseWriter{w}
 }
 
-func (g *Get) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rw := parseHeaders(w, r, g.Templates)
+func (g *Get) ServeHTTP(rw ResponseWriter, r *http.Request) {
 	if url := r.URL.Path[len(g.Name)+1:]; url == "" {
-		http.Redirect(w, r, g.Name, http.StatusSeeOther)
+		http.Redirect(rw.Writer(), r, g.Name, http.StatusSeeOther)
 	} else if i, err := strconv.Atoi(url); err != nil {
-		rw.Error(w, common.NewHTTPError("400 Bad Request", http.StatusBadRequest))
+		rw.Write(common.NewHTTPError("400 Bad Request", http.StatusBadRequest))
 	} else if data, err := g.Method(i); err != nil {
-		rw.Error(w, err)
-	} else if err := rw.Render(w, data); err != nil {
+		rw.Write(err)
+	} else if err := rw.Write(data); err != nil {
 		common.Error.Printf("Rendering failed: %s", err)
 	} else {
 		common.Trace.Printf("%q", data)
 	}
 }
 
-func (l *List) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rw := parseHeaders(w, r, l.Templates)
+func (l *List) ServeHTTP(rw ResponseWriter, r *http.Request) {
 	if data, err := l.Method(); err != nil {
-		rw.Error(w, err)
-	} else if err := rw.Render(w, data); err != nil {
+		rw.Write(err)
+	} else if err := rw.Write(data); err != nil {
 		common.Error.Printf("Rendering failed: %s", err)
 	} else {
 		common.Trace.Printf("%q", data)
 	}
 }
 
-func (c *Create) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rw := parseHeaders(w, r, c.Templates)
+func (c *Create) ServeHTTP(rw ResponseWriter, r *http.Request) {
 	switch rw.(type) {
 	case *HTMLResponseWriter:
-		rw.Render(w, struct{}{})
+		rw.Write(struct{}{})
 	default:
 		// endpoint not available for something else than html
-		rw.Error(w, common.New404Error("Endpoint only exists for mimetype: text/html"))
+		rw.Write(common.New404Error("Endpoint only exists for mimetype: text/html"))
 	}
 }
 
-type ServeMux struct{ *http.ServeMux }
+type serveMux struct{ *http.ServeMux }
 
-func (mux *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (mux *serveMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	common.Info.Printf("%s %s", r.Method, r.URL.Path)
 	mux.ServeMux.ServeHTTP(w, r)
 }
 
-func (mux *ServeMux) NewEndpoint(name string, list ListMethod, get GetMethod) {
-	mux.Handle(common.Url(name), &List{list, templates(name, "list.html")})
-	mux.Handle(common.Url(name, ""), &Get{common.Url(name), get, templates(name, "get.html")})
-	mux.Handle(common.Url(name, "new"), &Create{templates(name, "create.html")})
+func (mux *serveMux) NewEndpoint(name string, list ListMethod, get GetMethod) {
+	mux.HandleFunc(common.Url(name), Handle(&List{list, NewHandler(name, "list.html")}))
+	mux.HandleFunc(common.Url(name, ""), Handle(&Get{get, NewHandler(name, "get.html")}))
+	mux.HandleFunc(common.Url(name, "new"), Handle(&Create{NewHandler(name, "create.html")}))
 }
+
+var Mux = &serveMux{http.NewServeMux()}

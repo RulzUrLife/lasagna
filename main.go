@@ -25,19 +25,17 @@ var static = http.StripPrefix(
 
 func main() {
 	common.Info.Println("Register URL patterns")
-	mux := &api.ServeMux{http.NewServeMux()}
+	api.Mux.HandleFunc("/", index)
+	api.Mux.Handle("/static/", static)
 
-	mux.HandleFunc("/", index)
-	mux.Handle("/static/", static)
-
-	mux.NewEndpoint("ingredients", db.ListIngredients, db.GetIngredient)
-	mux.NewEndpoint("utensils", db.ListUtensils, db.GetUtensil)
-	mux.NewEndpoint("recipes", db.ListRecipes, db.GetRecipe)
+	api.Mux.NewEndpoint("ingredients", db.ListIngredients, db.GetIngredient)
+	api.Mux.NewEndpoint("utensils", db.ListUtensils, db.GetUtensil)
+	api.Mux.NewEndpoint("recipes", db.ListRecipes, db.GetRecipe)
 
 	addr := fmt.Sprintf("%s:%d", common.Config.Host, common.Config.Port)
 	s := &http.Server{
 		Addr:           addr,
-		Handler:        mux,
+		Handler:        api.Mux,
 		MaxHeaderBytes: 1 << 20,
 		ReadTimeout:    5 * time.Second,
 		WriteTimeout:   5 * time.Second,
