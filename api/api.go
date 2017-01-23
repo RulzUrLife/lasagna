@@ -175,11 +175,10 @@ func (l *List) ParsePost(rw ResponseWriter, r *http.Request) (common.Endpoint, *
 	case *HTMLResponseWriter:
 		if r.ParseForm(); err != nil {
 			return nil, common.New400Error(err.Error())
-		} else if err = e.ValidateForm(r.Form); err != nil {
+		} else if e, err = e.ValidateForm(r.Form); err != nil {
 			return nil, common.New400Error(err.Error())
 		}
 		common.Trace.Printf("%q", r.Form)
-
 	case *JSONResponseWriter:
 		//
 		decoder := json.NewDecoder(r.Body)

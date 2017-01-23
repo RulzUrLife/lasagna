@@ -14,7 +14,7 @@ type Endpoint interface {
 	Get(int) (interface{}, *HTTPError)
 	New() Endpoint
 	Validate() error
-	ValidateForm(values map[string][]string) error
+	ValidateForm(map[string][]string) (Endpoint, error)
 	Save() error
 	Delete(int) *HTTPError
 }

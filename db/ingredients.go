@@ -80,8 +80,14 @@ func (_ *Ingredient) Get(id int) (interface{}, *common.HTTPError) {
 	return ingredient, nil
 }
 
-func (i *Ingredient) ValidateForm(values map[string][]string) error {
-	return nil
+func (i *Ingredient) ValidateForm(values map[string][]string) (common.Endpoint, error) {
+	if names, ok := values["name"]; !ok {
+		return nil, errors.New(fmt.Sprintf(missing, "name"))
+	} else if len(names) != 1 || names[0] == "" {
+		return nil, errors.New(fmt.Sprintf(invalid, "name"))
+	} else {
+		return &Ingredient{Name: names[0]}, nil
+	}
 }
 
 func (i *Ingredient) Validate() error {

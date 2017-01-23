@@ -3,7 +3,7 @@
 
 URL="localhost:8888"
 
-post.ingredient:
+post.ingredient:  delete.ingredient
 	@curl -sX POST $(URL)/ingredients --data @post_ingredient.json
 
 post.ingredient.error:

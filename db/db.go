@@ -15,6 +15,7 @@ var (
 
 const (
 	invalid = "Invalid attribute '%s'"
+	missing = "Missing attribut '%s'"
 )
 
 type NullString struct {
