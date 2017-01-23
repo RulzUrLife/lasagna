@@ -4,7 +4,12 @@
 URL="localhost:8888"
 
 post.ingredient:
-	@curl -X POST $(URL)/ingredients --data @post_ingredient.json
+	@curl -sX POST $(URL)/ingredients --data @post_ingredient.json
 
 post.ingredient.error:
-	@curl -X POST $(URL)/ingredients --data @post_ingredient_error.json
+	@curl -sX POST $(URL)/ingredients --data @post_ingredient_error.json
+
+delete.ingredient:
+	@curl -s $(URL)/ingredients | \
+		jq '.ingredients[] | select(.name=="ingredient_10") | .id' | \
+		xargs -I@ curl -sX DELETE $(URL)/ingredients/@

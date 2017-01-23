@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/RulzUrLife/lasagna/common"
 	"net/http"
 	"strconv"
@@ -126,16 +127,42 @@ func parseHeaders(w http.ResponseWriter, r *http.Request, t *Templates) Response
 }
 
 func (g *Get) ServeHTTP(rw ResponseWriter, r *http.Request) {
+
+	del := func(id int) {
+		if err := g.Delete(id); err != nil {
+			rw.Write(err)
+		} else {
+			rw.Writer().WriteHeader(http.StatusNoContent)
+		}
+	}
+	get := func(id int) {
+		if data, err := g.Get(id); err != nil {
+			rw.Write(err)
+		} else if err := rw.Write(data); err != nil {
+			common.Error.Printf("Rendering failed: %s", err)
+		} else {
+			common.Trace.Printf("%q", data)
+		}
+	}
+
 	if url := r.URL.Path[len(g.Name)+1:]; url == "" {
+		// trailing / redirect to base url
 		http.Redirect(rw.Writer(), r, g.Name, http.StatusSeeOther)
-	} else if i, err := strconv.Atoi(url); err != nil {
-		rw.Write(common.NewHTTPError("400 Bad Request", http.StatusBadRequest))
-	} else if data, err := g.Get(i); err != nil {
-		rw.Write(err)
-	} else if err := rw.Write(data); err != nil {
-		common.Error.Printf("Rendering failed: %s", err)
+	} else if id, err := strconv.Atoi(url); err != nil {
+		// non parsable parameter
+		rw.Write(common.New400Error(
+			fmt.Sprintf("Invalid %s id '%s'", g.Name, url),
+		))
 	} else {
-		common.Trace.Printf("%q", data)
+		// switch through http methods, invoke the correct one
+		switch r.Method {
+		case http.MethodDelete:
+			del(id)
+		case http.MethodGet:
+			get(id)
+		default:
+			rw.Write(common.New404Error("Method does not exist on this endpoint"))
+		}
 	}
 }
 
@@ -146,9 +173,9 @@ func (l *List) ParsePost(rw ResponseWriter, r *http.Request) (common.Endpoint, *
 	defer r.Body.Close()
 	switch rw.(type) {
 	case *HTMLResponseWriter:
-		//
-		err := r.ParseForm()
-		if err != nil {
+		if r.ParseForm(); err != nil {
+			return nil, common.New400Error(err.Error())
+		} else if err = e.ValidateForm(r.Form); err != nil {
 			return nil, common.New400Error(err.Error())
 		}
 		common.Trace.Printf("%q", r.Form)
