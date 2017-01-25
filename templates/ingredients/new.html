@@ -1,7 +1,7 @@
 {{ define "content" }}
 <div class="col1of1">
     <h1 class="center">Create a new ingredient</h1>
-    <form action="{{ url "ingredients"}}" method="post">
+    <form action="{{ url "ingredients/new" }}" method="post">
         <label for="name">Name:</label>
         <input id="name" type="text" name="name"/>
         <input type="submit" value="Create"/>
