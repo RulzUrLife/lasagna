@@ -40,7 +40,7 @@ func (mux *serveMux) NewEndpoint(name string, resource common.Endpoint) {
 				defer r.Body.Close()
 				if err := r.ParseForm(); err != nil {
 					errTplt.Execute(w, common.New400Error(err.Error()))
-				} else if e, err := resource.ValidateForm(r.Form); err != nil {
+				} else if e, err := resource.Validate(r.Form); err != nil {
 					errTplt.Execute(w, common.New400Error(err.Error()))
 				} else if err := e.Save(); err != nil {
 					common.Error.Printf("%s", err)
@@ -53,6 +53,8 @@ func (mux *serveMux) NewEndpoint(name string, resource common.Endpoint) {
 			fallthrough
 		case http.MethodGet:
 			switch url := r.URL.Path; url {
+			case "new":
+				newTemplate.Execute(w, struct{}{})
 			case "":
 				if data, err := resource.List(); err != nil {
 					errTplt.Execute(w, err)
@@ -61,8 +63,6 @@ func (mux *serveMux) NewEndpoint(name string, resource common.Endpoint) {
 				} else {
 					common.Trace.Printf("%q", data)
 				}
-			case "new":
-				newTemplate.Execute(w, struct{}{})
 			default:
 				if id, err := strconv.Atoi(url); err != nil {
 					errTplt.Execute(w, common.New400Error("Invalid %s id '%s'", name, url))

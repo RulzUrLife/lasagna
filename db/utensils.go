@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/RulzUrLife/lasagna/common"
 	"strconv"
@@ -17,11 +18,17 @@ SELECT gordon.utensil.id, gordon.utensil.name
 FROM gordon.utensil
 `
 
+const utensil_save_query = `
+INSERT INTO gordon.utensil (name)
+VALUES ($1)
+RETURNING gordon.utensil.id, gordon.utensil.name
+`
+
 func (u *Utensil) Hash() string {
 	return strconv.Itoa(u.Id)
 }
 
-func (_ *Utensil) New() interface{} {
+func (_ *Utensil) New() common.Endpoint {
 	return &Utensil{}
 }
 
@@ -66,4 +73,18 @@ func (_ *Utensil) Get(id int) (interface{}, *common.HTTPError) {
 		}
 	}
 	return utensil, nil
+}
+
+func (_ *Utensil) Validate(values map[string][]string) (common.Endpoint, error) {
+	if names, ok := values["name"]; !ok {
+		return nil, errors.New(fmt.Sprintf(missing, "name"))
+	} else if len(names) != 1 || names[0] == "" {
+		return nil, errors.New(fmt.Sprintf(invalid, "name"))
+	} else {
+		return &Utensil{Name: names[0]}, nil
+	}
+}
+
+func (u *Utensil) Save() error {
+	return DB.QueryRow(utensil_save_query, u.Name).Scan(&u.Id, &u.Name)
 }

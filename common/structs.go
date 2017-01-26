@@ -13,10 +13,8 @@ type Endpoint interface {
 	List() (interface{}, *HTTPError)
 	Get(int) (interface{}, *HTTPError)
 	New() Endpoint
-	Validate() error
-	ValidateForm(map[string][]string) (Endpoint, error)
+	Validate(map[string][]string) (Endpoint, error)
 	Save() error
-	Delete(int) *HTTPError
 }
 
 type OrderedMap struct {

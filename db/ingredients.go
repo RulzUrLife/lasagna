@@ -23,12 +23,6 @@ VALUES ($1)
 RETURNING gordon.ingredient.id, gordon.ingredient.name
 `
 
-const ingredient_delete_query = `
-DELETE FROM gordon.ingredient
-WHERE gordon.ingredient.id = $1
-RETURNING gordon.ingredient.id
-`
-
 func (i *Ingredient) Hash() string {
 	return strconv.Itoa(i.Id)
 }
@@ -80,7 +74,7 @@ func (_ *Ingredient) Get(id int) (interface{}, *common.HTTPError) {
 	return ingredient, nil
 }
 
-func (i *Ingredient) ValidateForm(values map[string][]string) (common.Endpoint, error) {
+func (_ *Ingredient) Validate(values map[string][]string) (common.Endpoint, error) {
 	if names, ok := values["name"]; !ok {
 		return nil, errors.New(fmt.Sprintf(missing, "name"))
 	} else if len(names) != 1 || names[0] == "" {
@@ -90,25 +84,6 @@ func (i *Ingredient) ValidateForm(values map[string][]string) (common.Endpoint, 
 	}
 }
 
-func (i *Ingredient) Validate() error {
-	if i.Name == "" {
-		return errors.New(fmt.Sprintf(invalid, "name"))
-	}
-	return nil
-}
-
 func (i *Ingredient) Save() error {
 	return DB.QueryRow(ingredient_save_query, i.Name).Scan(&i.Id, &i.Name)
-}
-
-func (_ *Ingredient) Delete(id int) *common.HTTPError {
-	err := DB.QueryRow(ingredient_delete_query, id).Scan(&id)
-	if err == nil {
-		return nil
-	} else if err == sql.ErrNoRows {
-		return common.New404Error("Ingredient does not exists")
-	} else {
-		common.Trace.Println(err)
-		return common.New500Error(err.Error())
-	}
 }
