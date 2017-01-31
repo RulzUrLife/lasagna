@@ -22,7 +22,6 @@ func templates(paths ...string) *template.Template {
 type serveMux struct{ *http.ServeMux }
 
 func (mux *serveMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
 	common.Info.Printf("%s %s", r.Method, r.URL.Path)
 	mux.ServeMux.ServeHTTP(w, r)
 }
@@ -34,6 +33,7 @@ func (mux *serveMux) NewEndpoint(name string, resource common.Endpoint) {
 	var newTemplate = templates(name, "new.html")
 
 	handler = func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
 		switch r.Method {
 		case http.MethodPost:
 			if r.URL.Path == "new" {
